@@ -126,7 +126,7 @@ async function main() {
         return;
     }
 
-    const url = 'quic-transport://localhost:4433/webcodecs';
+    const url = 'https://localhost:4433/webcodecs';
     transport = new WebTransport(url);
 
     transport.closed.then(() => {

@@ -232,7 +232,7 @@ func main() {
 	}()
 
 	server := NewWebTransportServerQuic(Config{
-		ListenAddr:     "0.0.0.0:4433",
+		ListenAddr:     "0.0.0.0:4434",
 		TLSCertPath:    "server.crt",
 		TLSKeyPath:     "server.key",
 		AllowedOrigins: []string{"localhost"},
