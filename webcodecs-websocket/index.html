@@ -1,0 +1,93 @@
+<!doctype html>
+<html>
+
+<head>
+    <meta http-equiv='Content-Type' content='text/html; charset=UTF-8'>
+    <title> webcodecs test </title>
+    <style type="text/css">
+        .room {
+            cursor: pointer;
+        }
+
+        div.select {
+            display: inline-block;
+            margin: 0 0 1em 0;
+        }
+    </style>
+
+    <script src="./cbor.js"></script>
+    <script src="./pusher.js?aa=bbbbbbbbbbbb"></script>
+    <script src="./player.js?aa=bbbbbbbbbbbb"></script>
+
+    <script type='text/javascript'>
+
+        window.localStorage.setItem('debug', '*');
+
+        let pusher;
+        let player;
+
+        async function publish() {
+
+            let videoElement = document.getElementById('video_container_publish');
+
+            pusher = new Pusher();
+
+            await pusher.init(videoElement);
+        }
+
+        async function play() {
+
+            let videoElement = document.getElementById('video_container_play');
+
+            player = new Player();
+
+            videoElement.onloadedmetadata = function () {
+                console.log('onloadedmetadata ' + Date.now());
+            }
+
+            await player.init(videoElement);
+        }
+
+
+    </script>
+
+</head>
+
+<body>
+    <h1>WebCodecs Demo</h1>
+    <br />
+
+
+    <div>
+        <button onclick="publish()">Publish</button>
+        <br><br>
+        <button onclick="play()">Play</button>
+    </div>
+
+
+
+    <div id="conference">
+        publish:
+        <br />
+        <div id="container">
+            <video id="video_container_publish" playsinline controls autoplay muted width="640" height="480"></video>
+        </div>
+        <br />
+
+    </div>
+
+
+    <div id="conference">
+        play:
+        <br />
+        <div id="container">
+            <video id="video_container_play" playsinline controls autoplay muted width="640" height="480"></video>
+        </div>
+        <br />
+
+    </div>
+
+</body>
+
+
+</html>
