@@ -5,28 +5,56 @@ class Pusher {
         this.aencoder_ = null;
         this.vencoder_ = null;
         this.videoElement_ = null;
-        this.socket_ = null;
+       
+        
+        this.pc_ = null;
+        this.datachannel_ = null;
+        this.channelOpen_ = false;
+
         this.sendFrames_ = 0;
         this.videoGop_ = 30;  
     }
     async init(videoElement) {
 
+        this.pc_ = new RTCPeerConnection();
+        this.datachannel_ = this.pc_.createDataChannel('message',{ordered:true});
+        this.datachannel_.binaryType = 'arraybuffer';
+        this.datachannel_.onopen = () => {
+            console.log('datachannel open');
+            this.channelOpen_ = true;
+        };
+        this.datachannel_.onmessage = (event) => {
+            console.log('datachannel message');
+            console.log(event.data);
+        };
 
-        this.socket_ = new WebSocket("ws://localhost:8000/pub");
+        const offer = await this.pc_.createOffer();
+        await this.pc_.setLocalDescription(offer);
 
-        this.socket_.binaryType = 'arraybuffer';
 
-        this.socket_.onopen = async () => {
-            console.log('socket open');
-            this.sendFrames_ = 0;
-        }
+        console.log(offer.sdp);
 
-        this.socket_.onmessage = async (event) => {    
-        }
+        let res = await fetch("http://localhost:8000/pub", {
+            method: 'post',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                sdp: offer.sdp
+            })
+        })
 
-        this.socket_.onclose = async (event) => {
-            console.log("socket close");
-        }
+        console.dir(res)
+
+    
+        let ret = await res.json()
+
+        let answer = new RTCSessionDescription({
+            type: 'answer',
+            sdp: ret.sdp
+        })
+
+        await this.pc_.setRemoteDescription(answer);
 
         const constraints = {
             video: { width: { exact: 1280 }, height: { exact: 720 } },
@@ -79,9 +107,6 @@ class Pusher {
         processedStream.addTrack(agenerator);
         videoElement.srcObject = processedStream;
         await videoElement.play();
-
-
-        
     }
 
     videoTransform(frame, controller) {
@@ -121,8 +146,8 @@ class Pusher {
                 duration,
                 data: data,
             });
-        if (this.socket_) {
-            this.socket_.send(data_);
+        if (this.channelOpen_) {
+            this.datachannel_.send(data_);
         }
        
     }
@@ -140,16 +165,17 @@ class Pusher {
             timestamp,
             data: data,
         });
-        if (this.socket_) {
-            this.socket_.send(data_);
+        if (this.channelOpen_) {
+            this.datachannel_.send(data_);
         }
        
     }
 
     destroy() {
-        if (this.socket_) {
-            this.socket_.close();
-            this.socket_ = null;
+        if (this.datachannel_) {
+            this.datachannel_.close();
+            this.datachannel_ = null;
+            this.channelOpen_ = false;
         }
     }
 }

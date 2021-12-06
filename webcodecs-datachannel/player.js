@@ -4,7 +4,11 @@ class Player {
     constructor() {
         this.adecoder_ = null;
         this.vdecoder_ = null;
-        this.socket_ = null;
+       
+
+        this.pc_ = null;
+        this.datachannel_ = null;
+        this.channelOpen_ = false;
 
         this.vwriter_ = null;
         this.awriter_ = null;
@@ -46,15 +50,17 @@ class Player {
         processedStream.addTrack(agenerator);
         videoElement.srcObject = processedStream;
 
-        this.socket_ = new WebSocket("ws://localhost:8000/sub");
-        this.socket_.binaryType = 'arraybuffer';
+        this.pc_ = new RTCPeerConnection();
+        this.datachannel_ = this.pc_.createDataChannel('message',{ordered:true});
+        this.datachannel_.binaryType = 'arraybuffer';
+        this.datachannel_.onopen = () => {
+            console.log('datachannel open');
+            this.channelOpen_ = true;
+        };
+        this.datachannel_.onmessage = async (event) => {
+            console.log('datachannel message');
+            console.log(event.data);
 
-        this.socket_.onopen = async () => {
-            console.log('socket open');
-        }
-  
-        this.socket_.onmessage = async (event) => {
-            
             const chunk = CBOR.decode(event.data);
             if (chunk.kind === 'video') {
                 if (this.waitKeyframe_ ){
@@ -70,9 +76,37 @@ class Player {
                 const encoded = new EncodedAudioChunk(chunk);
                 this.adecoder_.decode(encoded);
             }
+        };
 
-        }
-        
+        const offer = await this.pc_.createOffer();
+        await this.pc_.setLocalDescription(offer);
+
+        console.log(offer.sdp);
+
+        let res = await fetch("http://localhost:8000/sub", {
+            method: 'post',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                sdp: offer.sdp
+            })
+        })
+
+        console.dir(res)
+
+    
+        let ret = await res.json()
+
+        let answer = new RTCSessionDescription({
+            type: 'answer',
+            sdp: ret.sdp
+        })
+
+        await this.pc_.setRemoteDescription(answer);
+
+  
+
     }
     async handleVideoDecoded(frame) {
         this.vwriter_.write(frame);
