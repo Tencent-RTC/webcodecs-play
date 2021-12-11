@@ -189,8 +189,8 @@ func main() {
 	r.StaticFile("/cbor.js", "./cbor.js")
 	r.GET("/", index)
 
-	r.GET("/pub", pubChannel)
-	r.GET("/sub", subChannel)
+	r.POST("/pub", pubChannel)
+	r.POST("/sub", subChannel)
 
 	r.Run(address)
 }
